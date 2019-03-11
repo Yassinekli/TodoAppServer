@@ -25,13 +25,19 @@ app.post('/todos', function(req, res){
 });
 
 app.put('/todos', function(req, res) {
+    db.updateTodoTitle(req.body)
+        .then((feedback)=>res.json(feedback))
+        .catch((err)=>{console.log(err); res.json({})})
+});
+
+app.put('/todos/updateOrder', function(req, res) {
     console.log(req.body);
-    res.json({});
-})
+    res.json();
+});
 
 app.delete('/todos', function(req, res){
     db.deleteTodo(req.body)
-        .then((deletedTodo)=>res.json(deletedTodo))
+        .then((feedback)=>res.json(feedback))
         .catch((err)=>{console.log(err); res.json({})})
 });
 
