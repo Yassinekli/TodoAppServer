@@ -15,7 +15,7 @@ app.use(function(req, res, next) {
 app.get('/todos', function(req, res){
     db.getTodos()
         .then((docs)=>res.json(docs))
-        .catch((err)=>{console.log(err); res.json({})})
+        .catch(()=>res.json({}))
 });
 
 app.post('/todos', function(req, res){
@@ -27,18 +27,19 @@ app.post('/todos', function(req, res){
 app.put('/todos', function(req, res) {
     db.updateTodoTitle(req.body)
         .then((feedback)=>res.json(feedback))
-        .catch((err)=>{console.log(err); res.json({})})
+        .catch(()=>res.json({}))
 });
-
-app.put('/todos/updateOrder', function(req, res) {
-    console.log(req.body);
-    res.json();
+    
+app.put('/todos/update', function(req, res) {
+    db.updateTodos(req.body.updateTodos)
+        .then((feedback)=>res.json(feedback))
+        .catch(()=>res.json({}))
 });
 
 app.delete('/todos', function(req, res){
     db.deleteTodo(req.body)
         .then((feedback)=>res.json(feedback))
-        .catch((err)=>{console.log(err); res.json({})})
+        .catch(()=>res.json({}))
 });
 
 app.listen(3001, 'localhost');

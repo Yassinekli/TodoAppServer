@@ -26,23 +26,33 @@ const db = {
     updateTodoTitle: async function({todoId, title}) {
         const client = await MongoClient.connect(uri, {useNewUrlParser: true});
         const collection = await client.db(dbName).collection(collName);
-        let {message} = await collection.updateOne({_id: ObjectID(todoId)}, {$set:{title}})
+        let {message} = await collection.updateOne({_id: ObjectID(todoId)}, {$set:{title}});
         client.close();
         return message.documents;
     },
-    updateTodosOrder: async function(todos) {
+    updateTodos: async function(todos) {
         const client = await MongoClient.connect(uri, {useNewUrlParser: true});
+        let session = await client.startSession({ readPreference: { mode: "primary" } });
+        
+        session.startTransaction({ readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
         const collection = await client.db(dbName).collection(collName);
-        let {message} = await collection.updateMany({_id: {$in: todos.map(todo=>ObjectID(todo._id))}} /*,  {order: todos} */)
+
+        try{
+            for (const todo of todos) {
+                collection.updateOne({_id: ObjectID(todo._id)}, {$set:{ order: todo.order, completed: todo.completed }})
+            }
+        }
+        catch(err){
+            session.abortTransaction();
+            throw err;
+        }
+
+        session.commitTransaction();
+
+        session.endSession();
+
         client.close();
-        return message.documents;
-    },
-    updateTodoCompleted: async function(todos) {
-        const client = await MongoClient.connect(uri, {useNewUrlParser: true});
-        const collection = await client.db(dbName).collection(collName);
-        let {message} = await collection.updateMany({_id: {$in: todos.map(todo=>ObjectID(todo._id))}}, {$inc:{order: -1}})
-        client.close();
-        return message.documents;
+        return 1;
     },
     deleteTodo : async function({_id, order}) {
         const client = await MongoClient.connect(uri, {useNewUrlParser: true});
