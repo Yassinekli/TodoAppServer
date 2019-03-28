@@ -54,13 +54,30 @@ const db = {
         client.close();
         return 1;
     },
-    deleteTodo : async function({_id, order}) {
+    deleteTodo : async function({_id, order, updateTodos}) {
         const client = await MongoClient.connect(uri, {useNewUrlParser: true});
+        let session = await client.startSession({ readPreference: { mode: "primary" } });
+
+        session.startTransaction({ readConcern: { level: "snapshot" }, writeConcern: { w: "majority" } });
         const collection = await client.db(dbName).collection(collName);
-        let {message} = await collection.deleteOne({_id: ObjectID.createFromHexString(_id)});
-        collection.updateMany({order:{$gt: order}}, {$inc:{order: -1}});
+
+        let response;
+
+        try{
+            this.updateTodos(updateTodos);
+            response = await collection.deleteOne({_id: ObjectID.createFromHexString(_id)});
+            collection.updateMany({order:{$gt: order}}, {$inc:{order: -1}});
+        }
+        catch(err){
+            session.abortTransaction();
+            throw err;
+        }
+
+        session.commitTransaction();
+        session.endSession();
         client.close();
-        return message.documents;
+
+        return response.message.documents;
     }
 };
 
